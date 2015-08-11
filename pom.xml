@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.adeptnet</groupId>
+    <artifactId>auth</artifactId>
+    <version>1.0.1</version>
+    <packaging>pom</packaging>
+    <modules>
+        <module>saml</module>
+        <module>kerberos</module>
+        <module>common</module>
+    </modules>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <opensaml.version>2.6.4</opensaml.version>
+        <commons.logging.version>[1.0,1.1)</commons.logging.version>
+        <javax.servlet.api>[3.0,3.1)</javax.servlet.api>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
+    <name>auth</name>
+</project>
