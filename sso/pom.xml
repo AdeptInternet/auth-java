@@ -4,12 +4,11 @@
     <parent>
         <artifactId>auth</artifactId>
         <groupId>org.adeptnet</groupId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </parent>
 
     <groupId>org.adeptnet.auth</groupId>
     <artifactId>auth-sso</artifactId>
-    <version>1.0.1</version>
     <packaging>bundle</packaging>
 
     <name>auth-sso OSGi Bundle</name>
