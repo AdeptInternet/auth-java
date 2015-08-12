@@ -37,7 +37,8 @@
         <module>saml</module>
         <module>kerberos</module>
         <module>common</module>
-    </modules>
+    <module>sso</module>
+  </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <opensaml.version>2.6.4</opensaml.version>
