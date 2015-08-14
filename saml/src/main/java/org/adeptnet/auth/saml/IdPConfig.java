@@ -37,6 +37,9 @@ import org.opensaml.xml.security.credential.UsageType;
 import org.opensaml.common.xml.SAMLConstants;
 
 import javax.xml.bind.DatatypeConverter;
+import org.opensaml.saml2.metadata.EntitiesDescriptor;
+import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.parse.XMLParserException;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -73,9 +76,23 @@ public class IdPConfig {
 
             final UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
 
-            edesc = (EntityDescriptor) unmarshallerFactory
+            final XMLObject o = unmarshallerFactory
                     .getUnmarshaller(root)
                     .unmarshall(root);
+
+            if (o instanceof EntitiesDescriptor) {
+                final EntitiesDescriptor ed = (EntitiesDescriptor) o;
+                if (ed.getEntityDescriptors() == null) {
+                    throw new XMLParserException("EntityDescriptors is null");
+                }
+                if (ed.getEntityDescriptors().isEmpty()) {
+                    throw new XMLParserException("EntityDescriptors is empty");
+                }
+                edesc = ed.getEntityDescriptors().get(0);
+
+            } else {
+                edesc = (EntityDescriptor) o;
+            }
         } catch (org.opensaml.xml.parse.XMLParserException | org.opensaml.xml.io.UnmarshallingException | java.io.IOException e) {
             throw new SAMLException(e);
         }
