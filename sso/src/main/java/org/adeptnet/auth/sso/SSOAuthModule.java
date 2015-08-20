@@ -17,7 +17,6 @@ package org.adeptnet.auth.sso;
 
 import org.adeptnet.auth.sso.common.SSOCredentials;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
