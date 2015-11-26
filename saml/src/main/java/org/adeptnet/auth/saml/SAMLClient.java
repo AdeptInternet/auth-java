@@ -121,14 +121,14 @@ import org.xml.sax.SAXException;
  * SDK.
  */
 public class SAMLClient {
-
+    
     public static final String SAML_RESPONSE = "SAMLResponse";
     public static final String SAML_RELAYSTATE = "RelayState";
     public static final String SAML_SIGALG = "SigAlg";
     public static final String SAML_SIGNATURE = "Signature";
-
+    
     private static final Log LOG = LogFactory.getLog(SAMLClient.class);
-
+    
     private final SAMLConfig config;
     private final SignatureValidator sigValidator;
     private final BasicParserPool parsers;
@@ -136,7 +136,7 @@ public class SAMLClient {
 
     /* do date comparisons +/- this many seconds */
     private static final int slack = 300;
-
+    
     private final Map<String, String> map = new HashMap<>();
 
     /**
@@ -149,12 +149,12 @@ public class SAMLClient {
     public SAMLClient(final SAMLConfig config) throws SAMLException {
         SAMLInit.initialize();
         this.config = config;
-
+        
         final BasicCredential _cred = new BasicCredential();
         _cred.setEntityId(config.getIdPConfig().getEntityId());
         _cred.setPublicKey(config.getIdPConfig().getCert().getPublicKey());
         cred = _cred;
-
+        
         sigValidator = new SignatureValidator(cred);
 
         // create xml parsers
@@ -179,12 +179,12 @@ public class SAMLClient {
     public SPConfig getSPConfig() {
         return config.getSPConfig();
     }
-
+    
     private Response parseResponse(String authnResponse) throws SAMLException {
         try {
             final Document doc = parsers.getBuilder()
                     .parse(new InputSource(new StringReader(authnResponse)));
-
+            
             final Element root = doc.getDocumentElement();
             return (Response) Configuration.getUnmarshallerFactory()
                     .getUnmarshaller(root)
@@ -193,14 +193,14 @@ public class SAMLClient {
             throw new SAMLException(e);
         }
     }
-
+    
     private void validatePOST(final Response response) throws ValidationException {
         // signature must match our SP's signature.
         final Signature sig1 = response.getSignature();
         sigValidator.validate(sig1);
         validate(response);
     }
-
+    
     private void validate(final Response response) throws ValidationException {
         if (response.getStatus() == null
                 || response.getStatus().getStatusCode() == null
@@ -213,29 +213,29 @@ public class SAMLClient {
         if (!config.getSPConfig().getAcs().equals(response.getDestination())) {
             throw new ValidationException("Response is destined for a different endpoint");
         }
-
+        
         final DateTime now = DateTime.now();
 
         // issue instant must be within a day
         final DateTime issueInstant = response.getIssueInstant();
-
+        
         if (issueInstant != null) {
             if (issueInstant.isBefore(now.minusDays(1).minusSeconds(slack))) {
                 throw new ValidationException("Response IssueInstant is in the past");
             }
-
+            
             if (issueInstant.isAfter(now.plusDays(1).plusSeconds(slack))) {
                 throw new ValidationException("Response IssueInstant is in the future");
             }
         }
-
+        
         for (Assertion assertion : response.getAssertions()) {
 
             // Assertion must be signed correctly
             if (!assertion.isSigned()) {
                 throw new ValidationException("Assertion must be signed");
             }
-
+            
             final Signature sig2 = assertion.getSignature();
             sigValidator.validate(sig2);
 
@@ -255,7 +255,7 @@ public class SAMLClient {
                     throw new ValidationException("AuthnStatement has expired");
                 }
             }
-
+            
             if (assertion.getConditions() == null) {
                 throw new ValidationException("Assertion should contain conditions");
             }
@@ -266,7 +266,7 @@ public class SAMLClient {
                 if (instant.isBefore(now.minusDays(1).minusSeconds(slack))) {
                     throw new ValidationException("Response IssueInstant is in the past");
                 }
-
+                
                 if (instant.isAfter(now.plusDays(1).plusSeconds(slack))) {
                     throw new ValidationException("Response IssueInstant is in the future");
                 }
@@ -276,22 +276,22 @@ public class SAMLClient {
             final Conditions conditions = assertion.getConditions();
             DateTime notBefore = conditions.getNotBefore();
             DateTime notOnOrAfter = conditions.getNotOnOrAfter();
-
+            
             if (notBefore == null) {
                 notBefore = now;
             }
-
+            
             if (notBefore == null || notOnOrAfter == null) {
                 throw new ValidationException("Assertion conditions must have limits");
             }
-
+            
             notBefore = notBefore.minusSeconds(slack);
             notOnOrAfter = notOnOrAfter.plusSeconds(slack);
-
+            
             if (now.isBefore(notBefore)) {
                 throw new ValidationException("Assertion conditions is in the future");
             }
-
+            
             if (now.isEqual(notOnOrAfter) || now.isAfter(notOnOrAfter)) {
                 throw new ValidationException("Assertion conditions is in the past");
             }
@@ -306,7 +306,7 @@ public class SAMLClient {
                     if (sc.getSubjectConfirmationData() == null) {
                         continue;
                     }
-
+                    
                     final SubjectConfirmationData scd = sc.getSubjectConfirmationData();
                     if (scd.getNotOnOrAfter() != null) {
                         final DateTime chkdate = scd.getNotOnOrAfter().plusSeconds(slack);
@@ -314,12 +314,12 @@ public class SAMLClient {
                             throw new ValidationException("SubjectConfirmationData is in the past");
                         }
                     }
-
+                    
                     if (config.getSPConfig().getAcs().equals(scd.getRecipient())) {
                         foundRecipient = true;
                     }
                 }
-
+                
                 if (!foundRecipient) {
                     throw new ValidationException("No SubjectConfirmationData found for ACS");
                 }
@@ -335,7 +335,7 @@ public class SAMLClient {
             if (conditions.getAudienceRestrictions().size() > 1) {
                 throw new ValidationException("Assertion contains multiple audience restrictions");
             }
-
+            
             final AudienceRestriction ar = conditions.getAudienceRestrictions().get(0);
 
             // at least one of the audiences must match our SP
@@ -350,7 +350,7 @@ public class SAMLClient {
             }
         }
     }
-
+    
     private Signature getSignature() {
         try {
             final char[] jksPassword = config.getKeystorePassword();
@@ -362,11 +362,11 @@ public class SAMLClient {
             final KeyStore.PrivateKeyEntry privateKeyEntry = (KeyStore.PrivateKeyEntry) keyStore.getEntry(alias, new KeyStore.PasswordProtection(jksPassword));
             final PrivateKey privateKey = privateKeyEntry.getPrivateKey();
             final X509Certificate certificate = (X509Certificate) privateKeyEntry.getCertificate();
-
+            
             final BasicX509Credential credential = new BasicX509Credential();
             credential.setEntityCertificate(certificate);
             credential.setPrivateKey(privateKey);
-
+            
             final Signature signature = (Signature) org.opensaml.xml.Configuration.getBuilderFactory()
                     .getBuilder(org.opensaml.xml.signature.Signature.DEFAULT_ELEMENT_NAME)
                     .buildObject(org.opensaml.xml.signature.Signature.DEFAULT_ELEMENT_NAME);
@@ -380,28 +380,28 @@ public class SAMLClient {
             return null;
         }
     }
-
+    
     public AuthnRequest createAuthnRequest(final String requestId) {
         final AuthnRequest request = new AuthnRequestBuilder().buildObject();
         request.setAssertionConsumerServiceURL(config.getSPConfig().getAcs());
         request.setDestination(config.getIdPConfig().getLoginUrl());
         request.setIssueInstant(new DateTime());
         request.setID(requestId);
-
+        
         final NameIDPolicy nameIDPolicy = new NameIDPolicyBuilder().buildObject();
         nameIDPolicy.setFormat(NameIDType.UNSPECIFIED);
         request.setNameIDPolicy(nameIDPolicy);
-
+        
         final Issuer issuer = new IssuerBuilder().buildObject();
         issuer.setValue(config.getSPConfig().getEntityId());
         request.setIssuer(issuer);
         request.setSignature(getSignature());
         return request;
     }
-
+    
     private String _createAuthnRequest(final String requestId) throws SAMLException {
         final AuthnRequest request = createAuthnRequest(requestId);
-
+        
         try {
             // samlobject to xml dom object
             final Element elem = Configuration.getMarshallerFactory()
@@ -419,16 +419,16 @@ public class SAMLClient {
             throw new SAMLException(e);
         }
     }
-
+    
     private byte[] deflate(final byte[] input) throws IOException {
         // deflate and base-64 encode it
         final Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
         deflater.setInput(input);
         deflater.finish();
-
+        
         byte[] tmp = new byte[8192];
         int count;
-
+        
         final ByteArrayOutputStream bos = new ByteArrayOutputStream();
         while (!deflater.finished()) {
             count = deflater.deflate(tmp);
@@ -436,7 +436,7 @@ public class SAMLClient {
         }
         bos.close();
         deflater.end();
-
+        
         return bos.toByteArray();
     }
 
@@ -451,7 +451,7 @@ public class SAMLClient {
      */
     public String generateAuthnRequest(final String requestId) throws SAMLException {
         final String request = _createAuthnRequest(requestId);
-
+        
         try {
             final byte[] compressed = deflate(request.getBytes("UTF-8"));
             return DatatypeConverter.printBase64Binary(compressed);
@@ -461,7 +461,7 @@ public class SAMLClient {
             throw new SAMLException("Unable to compress the AuthnRequest", e);
         }
     }
-
+    
     private byte[] inflate(final byte[] content) throws java.io.IOException {
         try (final java.io.InputStream is = new java.io.ByteArrayInputStream(content);
                 final java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream(content.length * 2);
@@ -475,14 +475,14 @@ public class SAMLClient {
             return baos.toByteArray();
         }
     }
-
+    
     private AttributeSet getAttributeSet(final Response response) throws SAMLException {
         // we only look at first assertion
         if (response.getAssertions().size() != 1) {
             throw new SAMLException("Response should have a single assertion.");
         }
         final Assertion assertion = response.getAssertions().get(0);
-
+        
         final Subject subject = assertion.getSubject();
         if (subject == null) {
             throw new SAMLException("No subject contained in the assertion.");
@@ -490,11 +490,11 @@ public class SAMLClient {
         if (subject.getNameID() == null) {
             throw new SAMLException("No NameID found in the subject.");
         }
-
+        
         final String nameId = subject.getNameID().getValue();
-
+        
         final HashMap<String, List<String>> attributes = new HashMap<>();
-
+        
         for (AttributeStatement atbs : assertion.getAttributeStatements()) {
             for (Attribute atb : atbs.getAttributes()) {
                 final String name = atb.getName();
@@ -528,18 +528,18 @@ public class SAMLClient {
         } catch (UnsupportedEncodingException e) {
             throw new SAMLException("UTF-8 is missing, oh well.", e);
         }
-
+        
         final Response response = parseResponse(authnResponse);
-
+        
         try {
             validatePOST(response);
         } catch (ValidationException e) {
             throw new SAMLException(e);
         }
-
+        
         return getAttributeSet(response);
     }
-
+    
     private DocumentBuilder createDocumentBuilder(boolean validating, boolean disAllowDocTypeDeclarations) throws ParserConfigurationException {
         final DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();
         dfactory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, Boolean.TRUE);
@@ -548,10 +548,10 @@ public class SAMLClient {
         }
         dfactory.setValidating(validating);
         dfactory.setNamespaceAware(true);
-
+        
         return dfactory.newDocumentBuilder();
     }
-
+    
     private Element[] selectNodes(final Node _sibling, final String uri, final String nodeName) {
         final List<Element> list = new ArrayList<>();
         Node sibling = _sibling;
@@ -564,7 +564,7 @@ public class SAMLClient {
         }
         return list.toArray(new Element[list.size()]);
     }
-
+    
     private void initMap() {
         if (!map.isEmpty()) {
             return;
@@ -599,7 +599,7 @@ public class SAMLClient {
                 if (algorithmsNode == null) {
                     continue;
                 }
-
+                
                 final Element[] algorithms = selectNodes(algorithmsNode.getFirstChild(), Init.CONF_NS, "Algorithm");
                 for (final Element element : algorithms) {
                     final String algoClass = element.getAttributeNS(null, "AlgorithmClass");
@@ -618,29 +618,31 @@ public class SAMLClient {
             LOG.error(ex.getMessage(), ex);
         }
     }
-
+    
     private String getAlgorithmURIFromID(final String algo) {
         initMap();
-
+        
         if (map.containsKey(algo)) {
             return map.get(algo);
         }
-
+        
+        LOG.warn(String.format("Could not find algo: %s", algo));
+        
         return algo;
     }
-
+    
     private String getRawQueryStringParameter(final String queryString, final String paramName) {
         if (queryString == null) {
             return null;
         }
-
+        
         final String paramPrefix = paramName + "=";
         int start = queryString.indexOf(paramPrefix);
         if (start == -1) {
             return null;
         }
         start += paramPrefix.length();
-
+        
         final int end = queryString.indexOf('&', start);
         if (end == -1) {
             return queryString.substring(start);
@@ -648,7 +650,7 @@ public class SAMLClient {
             return queryString.substring(start, end);
         }
     }
-
+    
     public AttributeSet validateResponseGET(final String queryString) throws SAMLException {
         final String samlTicket = getRawQueryStringParameter(queryString, SAML_RESPONSE);
         if (samlTicket == null) {
@@ -662,14 +664,14 @@ public class SAMLClient {
         if (samlSigature == null) {
             throw new SAMLException(String.format("%s cannot be null", SAML_SIGNATURE));
         }
-
+        
         if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("%s: %s", SAML_RESPONSE, samlTicket));
             LOG.debug(String.format("%s: %s", SAML_SIGALG, samlSig));
             LOG.debug(String.format("%s: %s", SAML_SIGNATURE, samlSigature));
         }
         try {
-
+            
             final StringBuilder sb = new StringBuilder();
             sb.append(String.format("%s=%s&", SAML_RESPONSE, samlTicket));
             final String samlRelayState = getRawQueryStringParameter(queryString, SAML_RELAYSTATE);
@@ -677,25 +679,25 @@ public class SAMLClient {
                 sb.append(String.format("%s=%s&", SAML_RELAYSTATE, samlRelayState));
             }
             sb.append(String.format("%s=%s", SAML_SIGALG, samlSig));
-
+            
             if (LOG.isDebugEnabled()) {
                 LOG.debug(String.format("%s: %s", "verification", sb.toString()));
             }
-
-            if (!SigningUtil.verifyWithURI(cred, getAlgorithmURIFromID(samlSig), DatatypeConverter.parseBase64Binary(HTTPTransportUtils.urlDecode(samlSigature)), sb.toString().getBytes("UTF-8"))) {
+            
+            if (!SigningUtil.verifyWithURI(cred, getAlgorithmURIFromID(HTTPTransportUtils.urlDecode(samlSig)), DatatypeConverter.parseBase64Binary(HTTPTransportUtils.urlDecode(samlSigature)), sb.toString().getBytes("UTF-8"))) {
                 throw new SAMLException("!SigningUtil.verifyWithURI");
             }
         } catch (UnsupportedEncodingException | SecurityException ex) {
             throw new SAMLException(ex);
         }
-
+        
         final byte[] decoded;
         try {
             decoded = inflate(DatatypeConverter.parseBase64Binary(HTTPTransportUtils.urlDecode(samlTicket)));
         } catch (IOException ex) {
             throw new SAMLException(ex);
         }
-
+        
         final String authnResponse;
         try {
             authnResponse = new String(decoded, "UTF-8");
@@ -705,9 +707,9 @@ public class SAMLClient {
         } catch (UnsupportedEncodingException e) {
             throw new SAMLException("UTF-8 is missing, oh well.", e);
         }
-
+        
         final Response response = parseResponse(authnResponse);
-
+        
         try {
             validate(response);
         } catch (ValidationException e) {
@@ -715,11 +717,11 @@ public class SAMLClient {
         }
         return getAttributeSet(response);
     }
-
+    
     public void doSAMLRedirect(final HttpServletResponse response, final String relayState) throws SAMLException, MessageEncodingException {
         final String requestId = SAMLUtils.generateRequestId();
         final AuthnRequest authnRequest = createAuthnRequest(requestId);
-
+        
         final HttpServletResponseAdapter responseAdapter = new HttpServletResponseAdapter(response, true);
         final BasicSAMLMessageContext<SAMLObject, AuthnRequest, SAMLObject> context = new BasicSAMLMessageContext<>();
         final Endpoint endpoint = new SingleSignOnServiceBuilder().buildObject();
@@ -729,10 +731,10 @@ public class SAMLClient {
         context.setOutboundSAMLMessageSigningCredential(authnRequest.getSignature().getSigningCredential());
         context.setOutboundMessageTransport(responseAdapter);
         context.setRelayState(relayState == null ? "/" : relayState);
-
+        
         final HTTPRedirectDeflateEncoder encoder = new HTTPRedirectDeflateEncoder();
-
+        
         encoder.encode(context);
     }
-
+    
 }

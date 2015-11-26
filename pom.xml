@@ -8,7 +8,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.adeptnet</groupId>
     <artifactId>auth</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <name>auth</name>
     <description>This is the org.adeptnet.auth common library for Kerbros / SAML Authentication</description>
     <packaging>pom</packaging>

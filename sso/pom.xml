@@ -4,7 +4,7 @@
     <parent>
         <artifactId>auth</artifactId>
         <groupId>org.adeptnet</groupId>
-        <version>1.0.3</version>
+        <version>1.0.4</version>
     </parent>
 
     <groupId>org.adeptnet.auth</groupId>
